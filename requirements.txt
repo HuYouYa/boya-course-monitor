@@ -1,0 +1,4 @@
+starlette>=0.46
+uvicorn[standard]>=0.34
+playwright>=1.50
+

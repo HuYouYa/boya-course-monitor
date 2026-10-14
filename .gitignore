@@ -1,0 +1,12 @@
+__pycache__/
+.venv/
+*.pyc
+data/
+.secret
+app.js
+*.sqlite3
+browser-state*.json
+debug-state*.json
+.env
+.env.*
+

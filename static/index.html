@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>博雅课程监控</title>
+  <style>
+    :root{font-family:system-ui,-apple-system,"Microsoft YaHei",sans-serif;color:#17324d;background:#f4f7fb}*{box-sizing:border-box}body{margin:0}.top{background:#075ca8;color:white;padding:22px max(18px,calc((100% - 1180px)/2));display:flex;align-items:center;justify-content:space-between}.top h1{margin:0;font-size:24px}.top small{opacity:.8}.wrap{max-width:1180px;margin:22px auto;padding:0 16px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.card{background:#fff;border-radius:12px;padding:22px;box-shadow:0 3px 16px #17324d12;margin-bottom:18px}.card h2{font-size:18px;margin:0 0 18px;border-left:4px solid #1682d4;padding-left:10px}.field{margin:12px 0}.field label{display:block;font-size:14px;font-weight:600;margin-bottom:6px}.field input,.field select{width:100%;border:1px solid #cbd7e4;border-radius:7px;padding:10px;font-size:14px}.hint{font-size:12px;color:#748397}.btn{background:#0867b5;border:0;border-radius:7px;padding:11px 16px;color:#fff;cursor:pointer}.btn.secondary{background:#e8f1f9;color:#075ca8}.actions{display:flex;gap:10px;flex-wrap:wrap}.hours{display:grid;grid-template-columns:70px repeat(24,1fr);gap:3px;font-size:10px;align-items:center;overflow:auto}.hours .head{text-align:center;color:#667}.hours .day{font-size:12px;color:#345}.hour{height:23px;border:1px solid #cbd7e4;border-radius:3px;cursor:pointer;background:#fff}.hour.on{background:#1682d4;border-color:#1682d4}.range-grid{display:grid;grid-template-columns:90px 1fr;gap:10px 14px;align-items:center}.range-grid label{font-weight:600}.range-grid input{width:100%;border:1px solid #cbd7e4;border-radius:7px;padding:10px;font-size:14px}.channel{display:flex;gap:10px}.channel label{border:1px solid #cbd7e4;padding:8px 12px;border-radius:7px;cursor:pointer;font-weight:normal}.channel input{accent-color:#075ca8}.status{padding:11px;border-radius:7px;background:#eef6fd;font-size:13px;white-space:pre-wrap}.course{border-top:1px solid #e7edf4;padding:13px 0}.course:first-child{border-top:0}.course b{color:#075ca8}.tag{display:inline-block;background:#eaf4fc;color:#17669e;border-radius:12px;padding:2px 8px;font-size:12px;margin-left:6px}@media(max-width:800px){.grid{grid-template-columns:1fr}.range-grid{grid-template-columns:70px 1fr}}
+  </style>
+</head>
+<body>
+<header class="top"><div><h1>博雅课程监控</h1><small>实时关注开课时间与预选时间，按你的空闲小时筛选</small></div><small>本地运行 · 账号密码仅保存在本机</small></header>
+<main class="wrap">
+  <div class="grid">
+    <section class="card"><h2>博雅账号</h2>
+      <div class="field"><label>账号</label><input id="username" autocomplete="username" placeholder="统一认证用户名"></div>
+      <div class="field"><label>密码</label><input id="password" type="password" autocomplete="current-password" placeholder="留空则沿用已保存密码"></div>
+      <div class="field"><label>上课形式</label><select id="delivery_mode"><option value="offline">线下</option><option value="online">线上</option></select></div>
+      <div class="field" id="campus-wrap"><label>线下校区</label><select id="campus"><option>学院路</option><option>沙河</option></select></div>
+      <p class="hint">监控会使用账号登录博雅选课系统读取课程列表，不会替你自动选课。</p>
+    </section>
+    <section class="card"><h2>通知方式</h2>
+      <div class="channel"><label><input type="radio" name="channel" value="email" checked> 普通邮箱</label><label><input type="radio" name="channel" value="qq"> QQ 邮箱</label></div>
+      <div class="field"><label>SMTP 主机</label><input id="smtp_host" placeholder="例如 smtp.qq.com"></div>
+      <div class="field"><label>SMTP 端口</label><input id="smtp_port" type="number" value="465"></div>
+      <div class="field"><label>SMTP 用户名</label><input id="smtp_username" placeholder="邮箱账号"></div>
+      <div class="field"><label>SMTP 密码 / 授权码</label><input id="smtp_password" type="password" placeholder="留空则沿用已保存授权码"></div>
+      <div class="field"><label>发件人</label><input id="smtp_from" placeholder="默认使用 SMTP 用户名"></div>
+      <div class="field"><label>普通邮箱收件地址</label><input id="smtp_to" placeholder="选择普通邮箱时使用"></div>
+      <div class="field"><label>QQ 邮箱收件地址</label><input id="qq_to" placeholder="选择 QQ 邮箱时使用"></div>
+      <p class="hint">QQ 通知使用 SMTP 邮件通道；QQ 邮箱通常需要填写授权码，不是网页登录密码。</p>
+    </section>
+  </div>
+  <section class="card"><h2>每天空闲时间段</h2><p class="hint">每行输入一个或多个时间段，使用英文逗号或中文逗号分隔，例如：<b>09:00-12:00, 14:00-18:00</b>。课程的每个上课小时都必须落在对应星期的空闲时间内。</p><div class="range-grid" id="ranges"></div></section>
+  <section class="card"><h2>监控控制</h2><div class="actions"><button class="btn" id="save">保存配置</button><button class="btn secondary" id="run">立即检查</button><button class="btn secondary" id="test">发送测试通知</button></div><p id="status" class="status" style="margin-top:14px">正在读取状态…</p></section>
+  <section class="card"><h2>符合条件的课程</h2><div id="courses"><span class="hint">尚未检查</span></div></section>
+</main>
+<script>
+const days=['周一','周二','周三','周四','周五','周六','周日']; let config={free_hours:{}};
+function hoursFromRanges(text){const result=[];for(const part of String(text||'').split(/[,，、;；]+/).map(x=>x.trim()).filter(Boolean)){const m=part.match(/^(\d{1,2})(?::(\d{2}))?\s*[-~至到]\s*(\d{1,2})(?::(\d{2}))?$/);if(!m)throw Error(`时间段格式错误：${part}（示例：09:00-12:00）`);const sh=Number(m[1]),sm=Number(m[2]||0),eh=Number(m[3]),em=Number(m[4]||0);if(sh>23||eh>24||sm>59||em>59||eh*60+em<=sh*60+sm)throw Error(`时间段无效：${part}`);for(let h=Math.floor(sh);h<Math.ceil((eh*60+em)/60);h++)if(h<24&&!result.includes(h))result.push(h);}return result.sort((a,b)=>a-b);}
+function renderRanges(){const el=document.querySelector('#ranges');el.innerHTML=days.map((d,day)=>`<label for="range-${day}">${d}</label><input id="range-${day}" placeholder="例如 09:00-12:00, 14:00-18:00" value="${(config.free_ranges?.[day]??'').replaceAll('"','&quot;')}">`).join('');}
+function val(id){return document.querySelector('#'+id).value.trim()}
+function payload(){const free={},free_ranges={};days.forEach((_,day)=>{const text=val(`range-${day}`);free_ranges[day]=text;free[day]=hoursFromRanges(text);});return {username:val('username'),password:val('password'),delivery_mode:val('delivery_mode'),campus:val('campus'),free_hours:free,free_ranges:free_ranges,notify_channel:document.querySelector('input[name=channel]:checked').value,smtp_host:val('smtp_host'),smtp_port:Number(val('smtp_port')||465),smtp_username:val('smtp_username'),smtp_password:val('smtp_password'),smtp_from:val('smtp_from'),smtp_to:val('smtp_to'),qq_to:val('qq_to')};}
+function toggleCampus(){document.querySelector('#campus-wrap').style.display=document.querySelector('#delivery_mode').value==='online'?'none':'block';}
+function rangesFromHours(hours){const xs=(hours||[]).map(Number).sort((a,b)=>a-b),out=[];let i=0;while(i<xs.length){let s=xs[i],e=s+1;while(i+1<xs.length&&xs[i+1]===e){i++;e++;}out.push(`${String(s).padStart(2,'0')}:00-${String(e).padStart(2,'0')}:00`);i++;}return out.join(', ');}
+function fill(c){config=c;config.free_ranges=config.free_ranges||Object.fromEntries(days.map((_,d)=>[d,rangesFromHours(c.free_hours?.[d]||[])]));for(const id of ['username','smtp_host','smtp_port','smtp_username','smtp_from','smtp_to','qq_to'])if(c[id]!=null)document.querySelector('#'+id).value=c[id];document.querySelector('#delivery_mode').value=c.delivery_mode||((c.campus==='线上')?'online':'offline');document.querySelector('#campus').value=c.campus==='沙河'?'沙河':'学院路';document.querySelector(`input[name=channel][value="${c.notify_channel||'email'}"]`).checked=true;toggleCampus();renderRanges();}
+async function api(url,opt={}){const r=await fetch(url,{headers:{'Content-Type':'application/json'},...opt});const x=await r.json();if(!r.ok)throw Error(x.error||'请求失败');return x;}
+async function refresh(){try{const [s,cs]=await Promise.all([api('/api/status'),api('/api/courses')]);document.querySelector('#status').textContent=`${s.running?'监控运行中':'监控未启动'}\n上次检查：${s.last_run||'尚未检查'}${s.last_error?'\n错误：'+s.last_error:''}\n${(s.events||[]).slice(0,3).map(x=>x.created_at+' '+x.message).join('\n')}`;document.querySelector('#courses').innerHTML=cs.length?cs.map(c=>`<div class="course"><b>${c.name}</b><span class="tag">${(c.campus||[]).join('、')||'校区未标注'}</span><br>开课：${c.start||'待公布'} → ${c.end||'待公布'}<br>预选：${c.select_start||'待公布'} → ${c.select_end||'待公布'}<br>分类：${c.category||'未标注'}　地点：${c.position||'未标注'}<br>人数：${c.current_count??'未知'} / ${c.max_count??'未知'}</div>`).join(''):'<span class="hint">暂无符合条件的课程</span>'}catch(e){document.querySelector('#status').textContent=e.message;}}
+document.querySelector('#delivery_mode').onchange=toggleCampus;
+document.querySelector('#save').onclick=async()=>{try{fill(await api('/api/config',{method:'POST',body:JSON.stringify(payload())}));document.querySelector('#status').textContent='配置已保存。';}catch(e){alert(e.message)}};
+document.querySelector('#run').onclick=async()=>{document.querySelector('#status').textContent='正在登录并检查课程，请稍候…';try{const x=await api('/api/monitor/run',{method:'POST'});document.querySelector('#status').textContent=`检查完成：抓取 ${x.fetched} 门，符合条件 ${x.accepted} 门`;await refresh();}catch(e){document.querySelector('#status').textContent=e.message;}};
+document.querySelector('#test').onclick=async()=>{try{await api('/api/notify/test',{method:'POST',body:JSON.stringify(payload())});alert('测试通知已发送');}catch(e){alert(e.message)}};
+(async()=>{try{fill(await api('/api/config'));await refresh();}catch(e){document.querySelector('#status').textContent=e.message;}})();
+</script>
+</body></html>
