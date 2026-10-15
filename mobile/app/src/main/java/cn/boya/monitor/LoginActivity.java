@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.CookieManager;
 import org.json.JSONObject;
 
 public class LoginActivity extends Activity {
@@ -25,5 +26,10 @@ public class LoginActivity extends Activity {
         });
         setContentView(page);
         page.loadUrl(MonitorService.SITE_URL);
+    }
+
+    @Override protected void onPause() {
+        CookieManager.getInstance().flush();
+        super.onPause();
     }
 }
