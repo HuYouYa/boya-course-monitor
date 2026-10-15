@@ -31,11 +31,11 @@ python -m uvicorn app:app --host 0.0.0.0 --port 8787 --workers 1
 
 请持久化 `data/` 和 `.secret`，其中包含登录状态、课程记录和本机加密密钥。
 
-## Android 手机端
+## Android 手机端（独立运行）
 
-手机端 APK 是一个轻量客户端，首次打开时填写监控服务地址（例如 `http://192.168.1.20:8787`），然后即可在手机上使用同一套课程筛选和通知配置。账号、密码、SMTP 配置和课程数据仍保存在监控服务器上，APK 不包含个人配置。
+手机端 APK 内置配置、监控服务、课程筛选、课程指纹和 SMTP 通知，不需要电脑或 Python 服务。首次打开后填写博雅账号、每周空闲时间、校区和邮箱配置，点击“打开博雅登录”在 APK 内完成一次统一认证，再点击“启动监控”。应用会以 Android 前台服务定时检查，更新课程时发送通知。
 
-已构建的调试版 APK：[`mobile/releases/boya-course-monitor.apk`](mobile/releases/boya-course-monitor.apk)。手机和服务器需要能够互相访问；如果服务器在局域网内，请使用电脑的局域网 IP，不能填写 `127.0.0.1`。
+已构建的调试版 APK：[`mobile/releases/boya-course-monitor.apk`](mobile/releases/boya-course-monitor.apk)。账号、密码、SMTP 授权码和课程记录保存在 Android 本地，密码使用 Android Keystore 加密。
 
 手机端源码在 `mobile/`。如需重新构建，使用 Android SDK 35、Build Tools 35.0.0 和 Java 17，运行 `mobile/build-apk.ps1` 即可重新产出 APK。
 
