@@ -13,4 +13,5 @@ mobile/build-manual/
 mobile/.gradle/
 mobile/app/build/
 *.keystore
+*.idsig
 

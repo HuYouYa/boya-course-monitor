@@ -4,8 +4,8 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-if ([string]::IsNullOrWhiteSpace($SdkRoot)) { throw "请设置 ANDROID_SDK_ROOT" }
-if ([string]::IsNullOrWhiteSpace($JavaHome)) { throw "请设置 JAVA_HOME（Java 17）" }
+if ([string]::IsNullOrWhiteSpace($SdkRoot)) { throw "Set ANDROID_SDK_ROOT first" }
+if ([string]::IsNullOrWhiteSpace($JavaHome)) { throw "Set JAVA_HOME (Java 17) first" }
 
 $project = Split-Path -Parent $PSScriptRoot
 $build = Join-Path $PSScriptRoot "build-manual"
