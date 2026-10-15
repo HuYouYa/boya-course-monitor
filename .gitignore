@@ -9,4 +9,8 @@ browser-state*.json
 debug-state*.json
 .env
 .env.*
+mobile/build-manual/
+mobile/.gradle/
+mobile/app/build/
+*.keystore
 
