@@ -9,6 +9,7 @@ import android.security.keystore.KeyProperties;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import android.util.Base64;
+import android.webkit.CookieManager;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -56,6 +57,29 @@ public final class ConfigStore {
     public static void start(Context c) {
         Intent i = new Intent(c, MonitorService.class).setAction(MonitorService.ACTION_RUN);
         if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(i); else c.startService(i);
+    }
+
+    public static void saveWebCookies(Context c) {
+        try {
+            CookieManager cm = CookieManager.getInstance();
+            JSONObject cookies = new JSONObject();
+            cookies.put("bykc", cm.getCookie("https://bykc.buaa.edu.cn") == null ? "" : cm.getCookie("https://bykc.buaa.edu.cn"));
+            cookies.put("sso", cm.getCookie("https://sso.buaa.edu.cn") == null ? "" : cm.getCookie("https://sso.buaa.edu.cn"));
+            c.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit().putString("web_cookies_enc", encrypt(cookies.toString())).apply();
+        } catch (Exception ignored) {}
+    }
+
+    public static void restoreWebCookies(Context c) {
+        try {
+            String raw = decrypt(c.getSharedPreferences(PREF, Context.MODE_PRIVATE).getString("web_cookies_enc", ""));
+            if (raw.isEmpty()) return;
+            JSONObject cookies = new JSONObject(raw);
+            CookieManager cm = CookieManager.getInstance();
+            cm.setAcceptCookie(true);
+            cm.setCookie("https://bykc.buaa.edu.cn", cookies.optString("bykc", ""));
+            cm.setCookie("https://sso.buaa.edu.cn", cookies.optString("sso", ""));
+            cm.flush();
+        } catch (Exception ignored) {}
     }
 
     private static SecretKey key() throws Exception {

@@ -25,6 +25,7 @@ public class LoginActivity extends Activity {
         CookieManager.getInstance().setAcceptThirdPartyCookies(page, true);
         page.setWebViewClient(new WebViewClient() {
             @Override public void onPageFinished(WebView v, String url) {
+                ConfigStore.saveWebCookies(LoginActivity.this);
                 JSONObject c = ConfigStore.config(LoginActivity.this);
                 String u = JSONObject.quote(c.optString("username")), p = JSONObject.quote(c.optString("password"));
                 v.evaluateJavascript("(function(){var u=document.querySelector('input[name=username],input#username,input[type=text]'),p=document.querySelector('input[name=password],input#password,input[type=password]');if(u)u.value="+u+";if(p){p.value="+p+";var b=document.querySelector('button[type=submit],input[type=submit],.submit-btn');if(b)b.click();}})()", null);
@@ -35,7 +36,14 @@ public class LoginActivity extends Activity {
     }
 
     @Override protected void onPause() {
+        ConfigStore.saveWebCookies(this);
         CookieManager.getInstance().flush();
         super.onPause();
+    }
+
+    @Override protected void onDestroy() {
+        ConfigStore.saveWebCookies(this);
+        CookieManager.getInstance().flush();
+        super.onDestroy();
     }
 }
