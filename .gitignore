@@ -10,6 +10,7 @@ debug-state*.json
 .env
 .env.*
 mobile/build-manual/
+mobile/build/
 mobile/.gradle/
 mobile/app/build/
 *.keystore
