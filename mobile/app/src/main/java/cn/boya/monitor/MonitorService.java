@@ -118,13 +118,15 @@ public class MonitorService extends Service {
         JSONObject config = ConfigStore.config(this); JSONArray accepted = new JSONArray(); int fetched = rows == null ? 0 : rows.length(); int changed = 0, notified = 0;
         try {
             JSONObject fingerprints = new JSONObject(getSharedPreferences("boya_local", MODE_PRIVATE).getString("fingerprints", "{}"));
+            JSONObject rejected = new JSONObject();
             for (int i=0; i<fetched; i++) {
                 JSONObject course = parseCourse(rows.getJSONArray(i));
-                if (!matches(course, config)) continue;
+                String reason = matchReason(course, config);
+                if (!"ok".equals(reason)) { rejected.put(reason, rejected.optInt(reason, 0) + 1); continue; }
                 accepted.put(course); String fp = fingerprint(course); String old = fingerprints.optString(course.optString("id"), "");
                 if (!fp.equals(old)) { changed++; sendNotification(config, course, fp, fingerprints); notified++; }
             }
-            JSONObject status = ConfigStore.status(this); status.put("running", true).put("last_run", now()).put("error", "").put("message", "抓取 "+fetched+" 门，符合条件 "+accepted.length()+" 门，更新 "+changed+" 门，已通知 "+notified+" 门").put("courses", accepted); ConfigStore.status(this, status);
+            JSONObject status = ConfigStore.status(this); status.put("running", true).put("last_run", now()).put("error", "").put("message", "抓取 "+fetched+" 门，符合条件 "+accepted.length()+" 门，更新 "+changed+" 门，已通知 "+notified+" 门；过滤原因："+rejected).put("courses", accepted); ConfigStore.status(this, status);
         } catch (Exception e) { setStatus(false, "课程解析失败：" + e.getMessage()); }
         scheduleNext();
     }
@@ -144,30 +146,52 @@ public class MonitorService extends Service {
     private String pair(String s,int index){Matcher m=Pattern.compile("20\\d{2}[年./-]\\d{1,2}[月./-]\\d{1,2}(?:日)?\\s*\\d{1,2}[:：]\\d{2}").matcher(s);int n=0;while(m.find()){if(n++==index)return formatDate(m.group());}return "";}
     private String formatDate(String s){String z=s.replace('年','-').replace('月','-').replace("日","").replace('：',':').replace('/','-').replace('.','-').replaceAll("\\s+"," ");for(String f:new String[]{"yyyy-M-d HH:mm","yyyy-MM-dd HH:mm"})try{return new SimpleDateFormat(f,Locale.CHINA).format(new SimpleDateFormat(f,Locale.CHINA).parse(z));}catch(Exception ignored){}return "";}
     private int hour(String s){try{return Integer.parseInt(s.substring(11,13));}catch(Exception e){return -1;}}
-    private boolean matches(JSONObject x, JSONObject c) {
+    private String matchReason(JSONObject x, JSONObject c) {
         try {
             String loc = x.optString("position") + x.optString("campus");
             boolean online = loc.contains("线上") || loc.contains("在线") || loc.contains("网络");
-            if ("online".equals(c.optString("delivery_mode"))) return online;
-            if (online) return false;
+            if ("online".equals(c.optString("delivery_mode"))) return online ? "ok" : "非线上课程";
+            if (online) return "线上课程";
             String wanted = c.optString("campus");
             if (!wanted.isEmpty()) {
                 boolean campusFound = loc.contains(wanted);
                 if ("学院路".equals(wanted)) campusFound = campusFound || loc.matches(".*J\\d+.*");
                 if ("沙河".equals(wanted)) campusFound = campusFound || loc.matches(".*SH\\d+.*");
-                if (!campusFound && !loc.contains("全部") && !loc.contains("不限")) return false;
+                if (!campusFound && !loc.contains("全部") && !loc.contains("不限")) return "校区不符";
             }
-            Date st = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA).parse(x.optString("start"));
-            Date en = x.optString("end").isEmpty() ? new Date(st.getTime() + 3600000) : new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA).parse(x.optString("end"));
+            Date st = parseCourseDate(x.optString("start"));
+            if (st == null) return "开课时间解析失败";
+            Date en = x.optString("end").isEmpty() ? new Date(st.getTime() + 3600000) : parseCourseDate(x.optString("end"));
+            if (en == null) return "结束时间解析失败";
             Calendar q = Calendar.getInstance(); q.setTime(st);
             while (q.getTime().before(en)) {
-                if (!free(c.optJSONObject("free_ranges"), q.get(Calendar.DAY_OF_WEEK) - Calendar.MONDAY, q.get(Calendar.HOUR_OF_DAY))) return false;
+                if (!free(c.optJSONObject("free_ranges"), (q.get(Calendar.DAY_OF_WEEK) + 5) % 7, q.get(Calendar.HOUR_OF_DAY), q.get(Calendar.MINUTE))) return "空闲时间冲突";
                 q.add(Calendar.HOUR_OF_DAY, 1);
             }
-            return true;
-        } catch (Exception e) { return false; }
+            return "ok";
+        } catch (Exception e) { return "筛选异常"; }
     }
-    private boolean free(JSONObject ranges,int day,int hour){if(ranges==null)return false;String s=ranges.optString(String.valueOf(day),"");for(String p:s.split("[,，、;；]+")){Matcher m=Pattern.compile("(\\d{1,2})(?::(\\d{2}))?\\s*[-~至到]\\s*(\\d{1,2})(?::(\\d{2}))?").matcher(p.trim());if(m.matches()){int a=Integer.parseInt(m.group(1)),b=Integer.parseInt(m.group(3));if(hour>=a&&hour<b)return true;}}return false;}
+    private boolean matches(JSONObject x, JSONObject c) { return "ok".equals(matchReason(x, c)); }
+    private Date parseCourseDate(String value) {
+        if (value == null || value.trim().isEmpty()) return null;
+        String text = value.trim().replace('T', ' ').replace('年', '-').replace('月', '-').replace("日", "").replace('：', ':').replace('/', '-').replace('.', '-').replaceAll("\\s+", " ");
+        for (String f : new String[]{"yyyy-MM-dd HH:mm", "yyyy-M-d HH:mm", "yyyy-MM-dd HH:mm:ss"}) try { return new SimpleDateFormat(f, Locale.CHINA).parse(text); } catch (Exception ignored) {}
+        return null;
+    }
+    private boolean free(JSONObject ranges, int day, int hour, int minute) {
+        if (ranges == null) return false;
+        String s = ranges.optString(String.valueOf(day), "");
+        for (String p : s.split("[,，、;；]+")) {
+            Matcher m = Pattern.compile("(\\d{1,2})(?::(\\d{2}))?\\s*[-~至到]\\s*(\\d{1,2})(?::(\\d{2}))?").matcher(p.trim());
+            if (m.matches()) {
+                int a = Integer.parseInt(m.group(1)) * 60 + (m.group(2) == null ? 0 : Integer.parseInt(m.group(2)));
+                int b = Integer.parseInt(m.group(3)) * 60 + (m.group(4) == null ? 0 : Integer.parseInt(m.group(4)));
+                int now = hour * 60 + minute;
+                if (now >= a && now < b) return true;
+            }
+        }
+        return false;
+    }
     private String fingerprint(JSONObject x)throws Exception{return sha1(x.toString());}
     private String sha1(String s){try{byte[] b=MessageDigest.getInstance("SHA-1").digest(s.getBytes("UTF-8"));StringBuilder z=new StringBuilder();for(byte x:b)z.append(String.format("%02x",x));return z.substring(0,16);}catch(Exception e){return String.valueOf(s.hashCode());}}
     private String now(){return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",Locale.CHINA).format(new Date());}
