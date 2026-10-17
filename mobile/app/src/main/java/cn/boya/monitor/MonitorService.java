@@ -181,17 +181,21 @@ public class MonitorService extends Service {
     }
     private boolean free(JSONObject ranges, int day, int hour, int minute) {
         if (ranges == null) return false;
-        String s = ranges.optString(String.valueOf(day), "");
+        String s = normalizeRangeText(ranges.optString(String.valueOf(day), ""));
         for (String p : s.split("[,，、;；]+")) {
             Matcher m = Pattern.compile("(\\d{1,2})(?::(\\d{2}))?\\s*[-~至到]\\s*(\\d{1,2})(?::(\\d{2}))?").matcher(p.trim());
             if (m.matches()) {
                 int a = Integer.parseInt(m.group(1)) * 60 + (m.group(2) == null ? 0 : Integer.parseInt(m.group(2)));
                 int b = Integer.parseInt(m.group(3)) * 60 + (m.group(4) == null ? 0 : Integer.parseInt(m.group(4)));
+                if (a < 0 || a > 1439 || b < 1 || b > 1440 || b <= a) continue;
                 int now = hour * 60 + minute;
                 if (now >= a && now < b) return true;
             }
         }
         return false;
+    }
+    private String normalizeRangeText(String value) {
+        return (value == null ? "" : value).replace('：', ':').replace('，', ',').replace('；', ';').replace('－', '-').replace('﹣', '-').replace('–', '-').replace('—', '-').replace('至', '-').replace('到', '-').replaceAll("\\s+", " ").trim();
     }
     private String fingerprint(JSONObject x)throws Exception{return sha1(x.toString());}
     private String sha1(String s){try{byte[] b=MessageDigest.getInstance("SHA-1").digest(s.getBytes("UTF-8"));StringBuilder z=new StringBuilder();for(byte x:b)z.append(String.format("%02x",x));return z.substring(0,16);}catch(Exception e){return String.valueOf(s.hashCode());}}
