@@ -137,7 +137,8 @@ public class MonitorService extends Service {
 
     private JSONObject parseCourse(JSONArray cells) throws Exception {
         String name = cell(cells,1), category=cell(cells,2), position=cell(cells,3), activity=cell(cells,4), campusText=cell(cells,5), select=cell(cells,6);
-        JSONObject x = new JSONObject(); x.put("id", sha1(name+activity+position+select)); x.put("name", name); x.put("category", category); x.put("position", position); x.put("teacher", position); x.put("status", cell(cells,0)); x.put("campus", campus(campusText)); x.put("start", pair(activity,0)); x.put("end", pair(activity,1)); x.put("select_start", pair(select,0)); x.put("select_end", pair(select,1));
+        StringBuilder all = new StringBuilder(); for (int i=0; i<cells.length(); i++) all.append(' ').append(cell(cells, i));
+        JSONObject x = new JSONObject(); x.put("id", sha1(name+activity+position+select)); x.put("name", name); x.put("category", category); x.put("position", position); x.put("location_text", all.toString()); x.put("teacher", position); x.put("status", cell(cells,0)); x.put("campus", campus(campusText)); x.put("start", pair(activity,0)); x.put("end", pair(activity,1)); x.put("select_start", pair(select,0)); x.put("select_end", pair(select,1));
         String count=cell(cells,8); if(count.contains("/")){String[] a=count.split("/",2);x.put("current_count",integer(a[0]));x.put("max_count",integer(a[1]));} else {x.put("current_count",integer(count));x.put("max_count",JSONObject.NULL);} return x;
     }
     private String cell(JSONArray a,int i){return i<a.length()?a.optString(i,"").replaceAll("\\s+"," ").trim():"";}
@@ -148,7 +149,7 @@ public class MonitorService extends Service {
     private int hour(String s){try{return Integer.parseInt(s.substring(11,13));}catch(Exception e){return -1;}}
     private String matchReason(JSONObject x, JSONObject c) {
         try {
-            String loc = x.optString("position") + x.optString("campus");
+            String loc = x.optString("location_text") + " " + x.optString("position") + " " + x.optString("campus");
             boolean online = loc.contains("线上") || loc.contains("在线") || loc.contains("网络");
             if ("online".equals(c.optString("delivery_mode"))) return online ? "ok" : "非线上课程";
             if (online) return "线上课程";

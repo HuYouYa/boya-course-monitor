@@ -14,7 +14,7 @@ $androidJar = Join-Path $SdkRoot "platforms\android-35\android.jar"
 $null = New-Item -ItemType Directory -Force (Join-Path $build "res-compiled"), (Join-Path $build "gen"), (Join-Path $build "classes"), (Join-Path $build "dex"), (Join-Path $PSScriptRoot "releases")
 
 & (Join-Path $buildTools "aapt2.exe") compile --dir (Join-Path $PSScriptRoot "app\src\main\res") -o (Join-Path $build "res-compiled.zip")
-& (Join-Path $buildTools "aapt2.exe") link -o (Join-Path $build "unsigned.apk") --manifest (Join-Path $PSScriptRoot "app\src\main\AndroidManifest.xml") -A (Join-Path $PSScriptRoot "app\src\main\assets") -I $androidJar --java (Join-Path $build "gen") --min-sdk-version 23 --target-sdk-version 35 (Join-Path $build "res-compiled.zip")
+& (Join-Path $buildTools "aapt2.exe") link -o (Join-Path $build "unsigned.apk") --manifest (Join-Path $PSScriptRoot "app\src\main\AndroidManifest.xml") -A (Join-Path $PSScriptRoot "app\src\main\assets") -I $androidJar --java (Join-Path $build "gen") --min-sdk-version 23 --target-sdk-version 35 --version-code 6 --version-name 1.1.5 (Join-Path $build "res-compiled.zip")
 & (Join-Path $JavaHome "bin\javac.exe") -source 8 -target 8 -encoding UTF-8 -classpath $androidJar -d (Join-Path $build "classes") (Join-Path $build "gen\cn\boya\monitor\R.java") (Get-ChildItem (Join-Path $PSScriptRoot "app\src\main\java") -Filter *.java -Recurse | ForEach-Object { $_.FullName })
 & (Join-Path $buildTools "d8.bat") --lib $androidJar --min-api 23 --output (Join-Path $build "dex") (Get-ChildItem (Join-Path $build "classes") -Filter *.class -Recurse | ForEach-Object { $_.FullName })
 & (Join-Path $JavaHome "bin\jar.exe") uf (Join-Path $build "unsigned.apk") -C (Join-Path $build "dex") classes.dex
