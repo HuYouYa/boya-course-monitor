@@ -12,6 +12,8 @@ import android.os.IBinder;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.CookieManager;
+import android.view.View;
 import android.widget.Toast;
 import android.util.Base64;
 import java.io.BufferedReader;
@@ -60,9 +62,12 @@ public class MonitorService extends Service {
     @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
     private void createPage() {
         page = new WebView(this);
-        WebSettings s = page.getSettings(); s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true); s.setDatabaseEnabled(true); s.setUserAgentString("Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36");
+        page.setVisibility(View.VISIBLE);
+        WebSettings s = page.getSettings(); s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true); s.setDatabaseEnabled(true); s.setUseWideViewPort(true); s.setLoadWithOverviewMode(true); s.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36");
+        CookieManager.getInstance().setAcceptCookie(true);
+        CookieManager.getInstance().setAcceptThirdPartyCookies(page, true);
         page.setWebViewClient(new WebViewClient() {
-            @Override public void onPageFinished(WebView v, String url) { handler.postDelayed(() -> advance(), 1600); }
+            @Override public void onPageFinished(WebView v, String url) { CookieManager.getInstance().flush(); handler.postDelayed(() -> advance(), 3000); }
         });
     }
 
@@ -106,7 +111,7 @@ public class MonitorService extends Service {
         String script = "(function(){var u=document.querySelector('input[name=username],input#username,input[type=text]'),p=document.querySelector('input[name=password],input#password,input[type=password]');if(u){u.value="+u+";u.dispatchEvent(new Event('input',{bubbles:true}));}if(p){p.value="+p+";p.dispatchEvent(new Event('input',{bubbles:true}));var b=document.querySelector('button[type=submit],input[type=submit],.submit-btn');if(b)b.click();}return 'ok';})()";
         page.evaluateJavascript(script, value -> { setStatus(true, "正在完成统一认证登录…"); retryAdvance(); });
     }
-    private void retryAdvance() { waitCount++; if (waitCount > 25) { loading = false; setStatus(false, "未能读取课程表。请点“打开博雅登录”在手机内完成一次登录后再启动监控。"); scheduleNext(); } else handler.postDelayed(this::advance, 1800); }
+    private void retryAdvance() { waitCount++; if (waitCount > 40) { loading = false; String url = page == null ? "" : page.getUrl(); setStatus(false, "未能读取课程表。当前页面：" + url + "。请在“打开博雅登录”中确认已回到博雅课程首页，再启动监控。"); scheduleNext(); } else handler.postDelayed(this::advance, 1800); }
 
     private void handleCourses(JSONArray rows) {
         JSONObject config = ConfigStore.config(this); JSONArray accepted = new JSONArray(); int fetched = rows == null ? 0 : rows.length(); int changed = 0, notified = 0;
